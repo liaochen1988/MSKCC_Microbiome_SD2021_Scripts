@@ -8,24 +8,12 @@ function [tblX, tblY, patientID_of_rows] = create_regression_matrices(data_path,
 tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'));
 tblsamples.PatientID = categorical(tblsamples.PatientID);
 
-%% This should not happen as repeated samples for the same patient on the same day were removed from our dataset
-% In case this happens, pick the first sample
-tblsamples = sortrows(tblsamples,{'PatientID';'SampleID';'Day'});
-unique_patientIDs = unique(tblsamples.PatientID);
-tblsamples_drop_sameday_samples = [];
-for i=1:length(unique_patientIDs)
-    tblsamples_patient_i = tblsamples(tblsamples.PatientID==unique_patientIDs(i),:);
-    [~,idx2keep]=unique(tblsamples_patient_i.Day,'first');
-    tblsamples_patient_i = tblsamples_patient_i(idx2keep,:);
-    tblsamples_drop_sameday_samples = [tblsamples_drop_sameday_samples;tblsamples_patient_i];
-end
-tblsamples = tblsamples_drop_sameday_samples;
-
 %% load counts table
 tblcounts = readtable(strcat(data_path, 'counts/tblASVcounts_human_filter.csv'));
 
 %% load drug table and select for administration route
-tbldrug = readtable(strcat(data_path, 'meta_data/tbldrug.csv'));
+opts = detectImportOptions(strcat(data_path, 'meta_data/tbldrug.csv'));
+tbldrug = readtable(strcat(data_path, 'meta_data/tbldrug.csv'), opts);
 tbldrug.PatientID = categorical(tbldrug.PatientID);
 tbldrug = tbldrug(ismember(tbldrug.Route,drug_admin_route), :);
 if (height(tbldrug)==0)
@@ -53,15 +41,10 @@ tbldrug = tbldrug(ismember(tbldrug.Category, drugcat2include), :);
 tblqpcr = readtable(strcat(data_path, 'counts/tblqpcr.csv'));
 tblqpcr = tblqpcr(tblqpcr.qPCR16S>0, :); % remove samples if its qPCR value = 0
 
-%% For samples that have multiple qPCR data, use their average
-[SampleID,~,ic] = unique(tblqpcr.SampleID,'stable');
-qPCR16S = accumarray(ic,tblqpcr.qPCR16S,[],@mean);
-tblqpcr = table(SampleID,qPCR16S);
-
 %% join tblsamples, tblqpcr, and tblcounts
 tbljoined = innerjoin(tblsamples, tblqpcr);
 tbljoined = innerjoin(tbljoined, tblcounts);
-tbljoined = tbljoined(:, {'PatientID','SampleID','Day','qPCR16S','ASV','Count'});
+tbljoined = tbljoined(:, {'PatientID','SampleID','Timepoint','qPCR16S','ASV','Count'});
 
 %% unstack and calculate total count for each samples
 tbljoined = unstack(tbljoined, 'Count', 'ASV');
@@ -95,13 +78,14 @@ for i=1:length(unique_patientIDs)
     
     patientID_i = unique_patientIDs(i); % get patient id
     patientID_i_samples = tbljoined(tbljoined.PatientID==patientID_i, :); % get all samples of the patient
-    patientID_i_samples = sortrows(patientID_i_samples, 'Day'); % sort samples based on sample collection date
+    patientID_i_samples = sortrows(patientID_i_samples, 'Timepoint'); % sort samples based on sample collection date
     patientID_i_drug  = tbldrug(tbldrug.PatientID==patientID_i,:); % get antibiotic administration records for the patient
     
     for j=2:height(patientID_i_samples)
-        day_1 = patientID_i_samples.Day(j-1); % day of the first sample
-        day_2 = patientID_i_samples.Day(j); % day of the second sample
+        day_1 = patientID_i_samples.Timepoint(j-1); % day of the first sample
+        day_2 = patientID_i_samples.Timepoint(j); % day of the second sample
         if (day_1==day_2)
+            patientID_i_samples(:,1:5)
             error('sample interval cannot be zero.');
         end
         matX(local_iter,1) = day_2-day_1;
@@ -138,21 +122,21 @@ for i=1:length(unique_patientIDs)
         
         % limit drug administrations to those occuring between the sample interval
         if (include_lastday_drug)
-            patientID_i_int_j_drug = patientID_i_drug(patientID_i_drug.StartDay<=day_2 & patientID_i_drug.StopDay>=day_1,:);
-            patientID_i_int_j_drug{patientID_i_int_j_drug.StartDay<day_1,'StartDay'} =  day_1;
-            patientID_i_int_j_drug{patientID_i_int_j_drug.StopDay>day_2,'StopDay'} =  day_2;
+            patientID_i_int_j_drug = patientID_i_drug(patientID_i_drug.StartTimepoint<=day_2 & patientID_i_drug.StopTimepoint>=day_1,:);
+            patientID_i_int_j_drug{patientID_i_int_j_drug.StartTimepoint<day_1,'StartTimepoint'} =  day_1;
+            patientID_i_int_j_drug{patientID_i_int_j_drug.StopTimepoint>day_2,'StopTimepoint'} =  day_2;
         else
-            patientID_i_int_j_drug = patientID_i_drug(patientID_i_drug.StartDay<day_2 & patientID_i_drug.StopDay>=day_1,:);
-            patientID_i_int_j_drug{patientID_i_int_j_drug.StartDay<day_1,'StartDay'} =  day_1;
-            patientID_i_int_j_drug{patientID_i_int_j_drug.StopDay>=day_2,'StopDay'} =  day_2-1;
+            patientID_i_int_j_drug = patientID_i_drug(patientID_i_drug.StartTimepoint<day_2 & patientID_i_drug.StopTimepoint>=day_1,:);
+            patientID_i_int_j_drug{patientID_i_int_j_drug.StartTimepoint<day_1,'StartTimepoint'} =  day_1;
+            patientID_i_int_j_drug{patientID_i_int_j_drug.StopTimepoint>=day_2,'StopTimepoint'} =  day_2-1;
         end
 
         % compute cumulative exposure (in unit days) to specific abtibiotic categories
         for k=1:length(unique_drugCategories)
             patientID_i_int_j_drug_cat_k = patientID_i_int_j_drug(strcmp(patientID_i_int_j_drug.Category, unique_drugCategories{k}),:);
             if (height(patientID_i_int_j_drug_cat_k)>0)
-                assert(sum(patientID_i_int_j_drug_cat_k.StopDay<patientID_i_int_j_drug_cat_k.StartDay)==0);
-                matX(local_iter, k+1) = sum(patientID_i_int_j_drug_cat_k.StopDay-patientID_i_int_j_drug_cat_k.StartDay + 1);
+                assert(sum(patientID_i_int_j_drug_cat_k.StopTimepoint<patientID_i_int_j_drug_cat_k.StartTimepoint)==0);
+                matX(local_iter, k+1) = sum(patientID_i_int_j_drug_cat_k.StopTimepoint-patientID_i_int_j_drug_cat_k.StartTimepoint + 1);
             else
                 matX(local_iter, k+1) = 0;
             end

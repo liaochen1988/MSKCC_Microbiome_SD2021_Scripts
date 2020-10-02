@@ -1,175 +1,20 @@
-function plot_community(patientID2plot, window2plot, bc2plot, tblsamples, tblcounts, tbltaxonomy, tblhctmeta, tblbc, tbldrug, tbltemp, tblinfection)
+function plot_community(PatientID2Plot, RelativeTimePeriod2Plot, BloodCellType2Plot, tblcounts, tbltaxonomy, tblbc, tbldrug, tbltemp, tblinfection)
 
-%% find samples of the patient with patientID "patientID2plot"
-tblsamples = tblsamples(tblsamples.PatientID==patientID2plot, :);
-if (isempty(tblsamples))
-    warning("No samples data for patient %s.", patientID2plot);
-end
-
-%% This should not happen as repeated samples for the same patient on the same day were removed from our dataset
-% In case this happens, pick the first sample
-tblsamples = sortrows(tblsamples,'Day');
-[~,idx2keep] = unique(tblsamples,'first');
-tblsamples = tblsamples(idx2keep,:);
-
-%% find ASV counts of these samples
-tblcounts = tblcounts(contains(tblcounts.SampleID, tblsamples.SampleID), :);
-if (isempty(tblcounts))
-    warning("No ASV count data for patient %s.", patientID2plot);
-end
-
-%% unstack counts table and normalize ASV counts to relative abundance
-tblcounts = unstack(tblcounts, 'Count', 'ASV');
-ASV_start_idx = find(contains(tblcounts.Properties.VariableNames, 'ASV'), 1);
-counts_matrix = tblcounts{:, ASV_start_idx:end};
-counts_matrix(isnan(counts_matrix)) = 0;
-counts_matrix = counts_matrix ./ sum(counts_matrix, 2);
-tblcounts{:, ASV_start_idx:end} = counts_matrix;
-
-%% join samples and counts by SampleID
-tbljoined = innerjoin(tblsamples(:, {'SampleID', 'Day'}), tblcounts);
-if (isempty(tbljoined))
-    warning('No data after joining the sample and count table.');
-end
-
-%% sort rows by day of samples
-tbljoined = sortrows(tbljoined, 'Day');
-
-%% find taxonomy for ASVs in the joined table
-ASV_start_idx = find(contains(tbljoined.Properties.VariableNames, 'ASV'), 1);
-[sharedASVs, idx, ~] = intersect(tbltaxonomy.ASV, tbljoined.Properties.VariableNames(ASV_start_idx:end), 'stable');
-tbljoined = tbljoined(:, {'SampleID','Day',sharedASVs{:}});
-tbltaxonomy = tbltaxonomy(idx,:);
-
-%% convert sample days to relative scale
-% if HCT date is available, make samples days reltive to HCT date
-% if HCT date is not available, make sample days relative to the median day of all samples
-if (~isempty(tbljoined))
-    hct_idx = find(tblhctmeta.PatientID == patientID2plot);
-    if (isempty(hct_idx))
-        warning('No hematopoietic cell transplant date found for patient %s.', patientID2plot);
-        reference_day = tbljoined.Day(ceil(end/2));
-    else
-        reference_day = tblhctmeta(hct_idx, :).DayOfTransplant;
-        % in case the patient has received multiple HCT days, give warning and use the most recent one
-        if (length(reference_day)>1)
-            warning('More than one hematopoietic cell transplant dates found for patient %s. Use the most recent one.', patientID2plot);
-            reference_day = max(reference_day);
-        end
-    end
-    tbljoined.Day = tbljoined.Day - reference_day;
-else
-    reference_day = 0;
-end
-
-%% keep data within the time window for plot
-if (~isempty(tbljoined) && ~isempty(window2plot))
-    idx2keep = find(tbljoined.Day >= window2plot(1) & tbljoined.Day <= window2plot(2));
-    if (isempty(idx2keep))
-        warning('No ASV count data for patient %s within [%d, %d] days of the reference date.', patientID2plot, window2plot(1), window2plot(2));
-        tbljoined = [];
-    else
-        tbljoined = tbljoined(idx2keep, :);
-    end
-end
-
-%% get blood cell counts for the patient with patientID "patientID2plot"
-tblbc = tblbc(tblbc.PatientID == patientID2plot, :);
-if (isempty(tblbc))
-    warning("No white blood cell data for patient %s.", patientID2plot);
-else
-    tblbc.Day = tblbc.Day - reference_day;
-    if (~isempty(window2plot))
-        idx2keep = find(tblbc.Day >= window2plot(1) & tblbc.Day <= window2plot(2));
-        if (isempty(idx2keep))
-            warning('No blood cell data for patient %s within [%d, %d] days of the reference point.', patientID2plot, window2plot(1), window2plot(2));
-            tblbc = [];
-        else
-            tblbc = tblbc(idx2keep, :);
-        end
-    end
-    
-    % impute missing values
-    if (~isempty(tblbc))
-        tblbc = fillmissing(tblbc,'spline','DataVariables',{bc2plot});
-        tblbc{tblbc.(bc2plot)<0, bc2plot} = 0;
-        
-        % This should not happen as repeated measurement of blood cell counts have been removed
-        % In case blood cell counts have duplicates; use their average
-        [Day,~,ic] = unique(tblbc.Day,'stable');
-        bc2plot_ave = accumarray(ic,tblbc.(bc2plot),[],@mean);
-        tblbc = table(Day,bc2plot_ave,'VariableNames',{'Day',bc2plot});
-    end
-end
-
-%% get anti-infective drug adminisitration records for the patient with patientID "patientID2plot"
-tbldrug = tbldrug(strcmp(tbldrug.AntiInfective,'True'),:); % select for only anti-infectives
-tbldrug = tbldrug(tbldrug.PatientID == patientID2plot, :);
-if (isempty(tbldrug))
-    warning("No anti-infective drug adminisitration data for patient %s.", patientID2plot);
-else
-    tbldrug.StartDay = tbldrug.StartDay - reference_day;
-    tbldrug.StopDay = tbldrug.StopDay - reference_day;
-    if (~isempty(window2plot))
-        idx2keep = find(tbldrug.StopDay >= window2plot(1) & tbldrug.StartDay <= window2plot(2));
-        if (isempty(idx2keep))
-            warning('No anti-infective drug adminisitration data for patient %s within [%d, %d] days of the reference date.\n', patientID2plot, window2plot(1), window2plot(2));
-            tbldrug = [];
-        else
-            tbldrug = tbldrug(idx2keep, :);
-        end
-    end
-end
-
-%% get temperature data for the patient with patientID "patientID2plot"
-tbltemp = tbltemp(tbltemp.PatientID == patientID2plot, :);
-if (isempty(tbltemp))
-    warning("No temperature data for patient %s.", patientID2plot);
-else
-    tbltemp.Day = tbltemp.Day - reference_day;
-    if (~isempty(window2plot))
-        idx2keep = find(tbltemp.Day >= window2plot(1) & tbltemp.Day <= window2plot(2));
-        if (isempty(idx2keep))
-            warning('No temperature data for patient %s within [%d, %d] days of the reference date.', patientID2plot, window2plot(1), window2plot(2));
-            tbltemp = [];
-        else
-            tbltemp = tbltemp(idx2keep, :);
-        end
-    end
-end
-
-%% get bacterial infection data for the patient with patientID "patientID2plot"
-tblinfection = tblinfection(tblinfection.PatientID == patientID2plot, :);
-if (isempty(tblinfection))
-    warning("No infection data for patient %s.", patientID2plot);
-else
-    tblinfection.Day = tblinfection.Day - reference_day;
-    if (~isempty(window2plot))
-        idx2keep = find(tblinfection.Day >= window2plot(1) & tblinfection.Day <= window2plot(2));
-        if (isempty(idx2keep))
-            warning('No infection data for patient %s within [%d, %d] days of the reference date.', patientID2plot, window2plot(1), window2plot(2));
-            tblinfection = [];
-        else
-            tblinfection = tblinfection(idx2keep, :);
-        end
-    end
-end
-
-%% plot time series of microbiome composition (indicate infections if available)
 figure();
-title(['patientID: ', patientID2plot]);
+title(['patientID: ', PatientID2Plot]);
 set(gca, 'FontName', 'Arial');
 
 subplot(5,1,[4,5]);
 hold on;
 box on;
-xtick_lb = round(window2plot(1)/5)*5;      % lower bound of xtick
-xtick_ub = (round(window2plot(2)/5)+1)*5;  % upper bound of xtick
+xtick_lb = round(RelativeTimePeriod2Plot(1)/5)*5;      % lower bound of xtick
+xtick_ub = (round(RelativeTimePeriod2Plot(2)/5)+1)*5;  % upper bound of xtick
     
-if (~isempty(tbljoined))
-    
-    % 1st and 2nd columns of tbljoined should be SampleID and day
-    abundance_matrix = tbljoined{:, ASV_start_idx:end}; 
+%% plot time series of microbiome composition and indicate infections if possible
+
+if (~isempty(tblcounts))    
+    % the first 3 columns of tblcounts are SampleID, Timepoint and DayRelativeToNearestHCT 
+    abundance_matrix = tblcounts{:, 4:end}; 
 
     % calculate the cumulative sum of taxa with same color_order
     % unique_color_order should be automatically sorted
@@ -183,10 +28,10 @@ if (~isempty(tbljoined))
     end
     
     % plot stacked bars
-    if (height(tbljoined) == 1)
-        h=bar([tbljoined.Day,nan], [color_grouped_abundance; nan(1, size(color_grouped_abundance,2))], 'stacked');
+    if (height(tblcounts) == 1)
+        h=bar([tblcounts.DayRelativeToNearestHCT,nan], [color_grouped_abundance; nan(1, size(color_grouped_abundance,2))], 'stacked', 'BarWidth', 0.1);
     else
-        h=bar(tbljoined.Day, color_grouped_abundance, 'stacked');
+        h=bar(tblcounts.DayRelativeToNearestHCT, color_grouped_abundance, 'stacked',  'BarWidth', height(tblcounts)/(height(tblcounts)+9));
     end
     
     % add text to indicate dominant ASV with more than 15% of relative abundance
@@ -211,7 +56,7 @@ if (~isempty(tbljoined))
         cum_sum_cmap = cumsum(color_grouped_abundance(curr_row,:));
         heightbefore = [0 cum_sum_cmap(1:end-1)];
         heightafter = cum_sum_cmap;
-        text(tbljoined.Day(curr_row), (heightafter(curr_box)+heightbefore(curr_box))/2, dominant_tax, ...
+        text(tblcounts.DayRelativeToNearestHCT(curr_row), (heightafter(curr_box)+heightbefore(curr_box))/2, dominant_tax, ...
             'HorizontalAlignment', 'center', 'Rotation', 90, 'FontSize', 12);
     end
     
@@ -233,16 +78,11 @@ end
 % add indicators for infection
 if (~isempty(tblinfection))
     for k=1:height(tblinfection)
-        text(tblinfection.Day(k), 1, '*', 'HorizontalAlignment', 'center', 'FontSize', 50);
+        text(tblinfection.DayRelativeToNearestHCT(k), 1, '*', 'HorizontalAlignment', 'center', 'FontSize', 50);
     end
 end
-
-if isempty(hct_idx)
-    xlabel('Days relative to date of middle sample');
-else
-    xlabel('Days relative to HCT date');
-end
-xlim(window2plot);
+xlabel('Days relative to HCT date');
+xlim(RelativeTimePeriod2Plot);
 set(gca,'Xtick',[xtick_lb:5:xtick_ub]);
 ylabel('16S relative abundance');
 set(gca,'FontSize',12);
@@ -253,16 +93,29 @@ hold on;
 box on;
 
 if (~isempty(tblbc))
+    
+	% impute missing values in tblbc
+    rows2insert = {};
+    for i=RelativeTimePeriod2Plot(1):1:RelativeTimePeriod2Plot(2)
+        if (sum(tblbc.DayRelativeToNearestHCT==i)==0)
+            rows2insert = [rows2insert;{i,nan}];
+        end
+    end
+    tblbc = [tblbc;rows2insert];
+    tblbc = sortrows(tblbc, 'DayRelativeToNearestHCT');
+    tblbc = fillmissing(tblbc,'linear');
+    tblbc{tblbc.Value<0, 'Value'} = 0;
+        
     yyaxis left;
-    plot(tblbc.Day, tblbc.(bc2plot), 'k.-', 'MarkerFaceColor', 'w', 'MarkerSize', 20, 'LineWidth', 1);
-    if(contains(bc2plot, 'Neutrophils'))
-        idx_neutropenia = find(tblbc.(bc2plot) <= 0.5); % threshold for neutropenia
-        plot(tblbc.Day(idx_neutropenia), tblbc.(bc2plot)(idx_neutropenia), 'r.', 'MarkerSize', 20);
+    plot(tblbc.DayRelativeToNearestHCT, tblbc.Value, 'k.-', 'MarkerFaceColor', 'w', 'MarkerSize', 20, 'LineWidth', 1);
+    if(strcmp(BloodCellType2Plot, 'Neutrophils'))
+        idx_neutropenia = find(tblbc.Value <= 0.5); % threshold for neutropenia
+        plot(tblbc.DayRelativeToNearestHCT(idx_neutropenia), tblbc.Value(idx_neutropenia), 'r.', 'MarkerSize', 20);
     end
     set(gca,'Xtick',xtick_lb:5:xtick_ub);
     
-    ytick_lb = floor(min(tblbc.(bc2plot)));
-    ytick_ub = ceil(max(tblbc.(bc2plot)));
+    ytick_lb = floor(min(tblbc.Value));
+    ytick_ub = ceil(max(tblbc.Value));
     if (mod(ytick_lb,2)~=0)
         ytick_lb = ytick_lb-3;
     else
@@ -282,7 +135,7 @@ if (~isempty(tblbc))
     % plot reference line for neutropenia
     yyaxis right;
     ylim([ytick_lb ytick_ub]);
-    plot([window2plot(1), window2plot(2)], [0.5, 0.5], 'k--');
+    plot([RelativeTimePeriod2Plot(1), RelativeTimePeriod2Plot(2)], [0.5, 0.5], 'k--');
     set(gca,'Ytick',0.5);
     
     % set black axis
@@ -298,16 +151,16 @@ else
 end
 
 xlabel('');
-xlim(window2plot);
+xlim(RelativeTimePeriod2Plot);
 set(gca, 'XTicklabel', []);
-if(contains(bc2plot,'RBCtotal'))
-    ylabel({strrep(bc2plot,'_unit_M_per_uL',''), 'count (M/\muL)'});
+if(strcmp(BloodCellType2Plot,'RBCtotal'))
+    ylabel({BloodCellType2Plot, 'count (M/\muL)'});
 else
-    ylabel({strrep(bc2plot,'_unit_K_per_uL',''), 'count (K/\muL)'});
+    ylabel({BloodCellType2Plot, 'count (K/\muL)'});
 end
 set(gca,'FontSize',12);
 
-%% plot time series for anti-infective drug administration
+%% plot time series of anti-infective drug administration
 subplot(5,1,2);
 hold on;
 box on;
@@ -326,9 +179,9 @@ if (~isempty(tbldrug))
             tbldrug_factor_i = tbldrug(factor_i_idx, :);
             administered_days =  []; % days that factor i was administered
             for j=1:height(tbldrug_factor_i)
-                administered_days = [administered_days,tbldrug_factor_i.StartDay(j):1:tbldrug_factor_i.StopDay(j)];              
+                administered_days = [administered_days,tbldrug_factor_i.StartDayRelativeToNearestHCT(j):1:tbldrug_factor_i.StopDayRelativeToNearestHCT(j)];              
                 % plot a single period from first day to last day administered for factor i
-                patch([tbldrug_factor_i.StartDay(j)-boxwidth, tbldrug_factor_i.StopDay(j)+boxwidth, tbldrug_factor_i.StopDay(j)+boxwidth, tbldrug_factor_i.StartDay(j)-boxwidth], ...
+                patch([tbldrug_factor_i.StartDayRelativeToNearestHCT(j)-boxwidth, tbldrug_factor_i.StopDayRelativeToNearestHCT(j)+boxwidth, tbldrug_factor_i.StopDayRelativeToNearestHCT(j)+boxwidth, tbldrug_factor_i.StartDayRelativeToNearestHCT(j)-boxwidth], ...
                       [i-boxheight, i-boxheight, i+boxheight, i+boxheight], color2patch, 'EdgeColor', 'none');
             end
             % add text
@@ -352,23 +205,23 @@ else
 end
 
 xlabel('');
-xlim(window2plot);
+xlim(RelativeTimePeriod2Plot);
 set(gca, 'XTicklabel', []);
 ylabel('Medications');
 set(gca,'Ytick',[]); 
 set(gca,'Yticklabel',[]); 
 set(gca,'FontSize',12);
 
-%% plot time series for temperature
+%% plot time series of temperature
 subplot(6,1,1);
 hold on;
 box on;
 
 if (~isempty(tbltemp))
     yyaxis left;
-    plot(tbltemp.Day, tbltemp.MaxTemperature, 'k.-', 'MarkerFaceColor', 'w', 'MarkerSize', 20, 'LineWidth', 1); 
+    plot(tbltemp.DayRelativeToNearestHCT, tbltemp.MaxTemperature, 'k.-', 'MarkerFaceColor', 'w', 'MarkerSize', 20, 'LineWidth', 1); 
     idx_fever = find(tbltemp.MaxTemperature>=100.4);
-    plot(tbltemp.Day(idx_fever), tbltemp.MaxTemperature(idx_fever), 'r.', 'MarkerSize', 20);
+    plot(tbltemp.DayRelativeToNearestHCT(idx_fever), tbltemp.MaxTemperature(idx_fever), 'r.', 'MarkerSize', 20);
     set(gca,'Xtick',xtick_lb:5:xtick_ub);
     
     ytick_lb = floor(min(tbltemp.MaxTemperature));
@@ -384,7 +237,7 @@ if (~isempty(tbltemp))
     
     % plot reference line for fever
     yyaxis right;
-    plot([window2plot(1), window2plot(2)], [100.4, 100.4], 'k--');
+    plot([RelativeTimePeriod2Plot(1), RelativeTimePeriod2Plot(2)], [100.4, 100.4], 'k--');
     ylim([ytick_lb ytick_ub]);
     set(gca,'Ytick',100.4);
     
@@ -401,7 +254,7 @@ else
 end
 
 xlabel('');
-xlim(window2plot);
+xlim(RelativeTimePeriod2Plot);
 set(gca, 'XTicklabel', []);
 ylabel('Temperature (F)');
 set(gca,'FontSize',12);

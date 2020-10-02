@@ -9,7 +9,8 @@ addpath('../utils');
 data_path = '../deidentified_data_tables/meta_data/';
 
 %% load drug table
-tbldrug = readtable(strcat(data_path, 'tbldrug.csv'));
+opts = detectImportOptions(strcat(data_path, 'tbldrug.csv'));
+tbldrug = readtable(strcat(data_path, 'tbldrug.csv'),opts);
 
 %% keep only anti-bacterial drug classes
 class2include = {'aminoglycosides', 'carbapenems', 'cephalosporins' ...

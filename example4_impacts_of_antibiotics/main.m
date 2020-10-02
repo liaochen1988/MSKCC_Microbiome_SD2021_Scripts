@@ -28,7 +28,7 @@ include_lastday_drug = 1;
 
 % include one or more of the following:
 % 'oral', 'gastric or jejunum tube', 'injection', 'intravenous', 'topical', 'unknown', 'urethral/vaginal/irrigation'
-drug_admin_route = {'oral'};
+drug_admin_route = {'intravenous'};
 
 max_interval = 3; % maximum sample intervals considered in regression
 
@@ -191,19 +191,18 @@ predictors = strrep(predictors, '_', ' ');
 % use redblue map
 my_map = brewermap(1000, '*RdBu');
 
-% replace NaN with zero (clustermap does not handle NaN)
+% replace NaN with zero
 tbl_opt_coefs_replace_NaN_w_zero = tbl_opt_coefs;
 if (sum(sum(isnan(tbl_opt_coefs_replace_NaN_w_zero{:,:})))>0)
     tbl_opt_coefs_replace_NaN_w_zero = fillmissing(tbl_opt_coefs_replace_NaN_w_zero,'constant',0);
-    warning('Caution: replace NaN with zero in clustergram!');
 end
     
 % using heatmap
 figure('Name','Heatmap');
-h = heatmap(tbl_opt_coefs{:,drug_start_idx:end}, 'Colormap', my_map);
+h = heatmap(tbl_opt_coefs{:,2:end}, 'Colormap', my_map);
 h.CellLabelFormat = '%.2f';
 ax = gca;
-ax.XData = predictors(drug_start_idx:end);
+ax.XData = predictors(2:end);
 ax.YData = ASVs_w_taxa;
 ax.FontSize=10;
 set(h.NodeChildren(3), 'XTickLabelRotation', 90);

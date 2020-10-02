@@ -39,27 +39,27 @@ fprintf('found %d dominated samples out of %d (%0.1f%% samples)\n',...
     sum(tblSample.dominated)/height(tblSample) * 100);
 
 %% get the PatientID and the day of sample collection
-tblSample = outerjoin(tblSamplePatientDay(:, {'SampleID' 'PatientID' 'Day'}), tblSample, 'Type', 'left',...
+tblSample = outerjoin(tblSamplePatientDay(:, {'SampleID' 'PatientID' 'DayRelativeToNearestHCT'}), tblSample, 'Type', 'left',...
     'MergeKeys', true);
 tblSample.dominated(isnan(tblSample.dominated)) = false;
 
 %% keep only samples between MINDAY and MAXDAY, exlude NaN and exclue FMT patients
-tblSample(tblSample.Day<MINDAY | tblSample.Day>MAXDAY | isnan(tblSample.Day), :) = [];
+tblSample(tblSample.DayRelativeToNearestHCT<MINDAY | tblSample.DayRelativeToNearestHCT>MAXDAY | isnan(tblSample.DayRelativeToNearestHCT), :) = [];
 if EXCLUDEFMT
     tblSample(contains(tblSample.SampleID, 'FMT'), :) = [];
 end
 
 %% find is the patient has an GENUS infection
 tblInfections(~contains(tblInfections.InfectiousAgent, INFECTION), :) = [];
-tblInfections(tblInfections.Day<MINDAY | tblInfections.Day>MAXDAY | isnan(tblInfections.Day), :) = [];
+tblInfections(tblInfections.DayRelativeToNearestHCT<MINDAY | tblInfections.DayRelativeToNearestHCT>MAXDAY | isnan(tblInfections.DayRelativeToNearestHCT), :) = [];
 if EXCLUDEFMT
     tblInfections(contains(tblInfections.PatientID, 'FMT'), :) = []; 
 end
 % keep only patients present in the samples table
 tblInfections(~ismember(tblInfections.PatientID, tblSample.PatientID), :) = [];
 % keep only the first infection
-tblInfections = grpstats(tblInfections, 'PatientID', 'min', 'DataVars', 'Day');
-tblInfections = tblInfections(:, {'PatientID' 'min_Day'});
+tblInfections = grpstats(tblInfections, 'PatientID', 'min', 'DataVars', 'DayRelativeToNearestHCT');
+tblInfections = tblInfections(:, {'PatientID' 'min_DayRelativeToNearestHCT'});
 tblInfections.Properties.VariableNames{2} = 'infectionDay';
 
 
@@ -70,16 +70,16 @@ tblSample = outerjoin(tblSample, tblInfections, 'Type', 'left',...
 %% if the patient never gets infection set infection day to infinite
 tblSample.infectionDay(isnan(tblSample.infectionDay)) = Inf;
 % remove samples after infection
-tblSample(tblSample.Day > tblSample.infectionDay, :) = [];
+tblSample(tblSample.DayRelativeToNearestHCT > tblSample.infectionDay, :) = [];
 
 
 %% get the first samplpe, last sample, and domination dates for each patient
-tblLastSample = grpstats(tblSample, 'PatientID', {'min' 'max'}, 'DataVars', 'Day');
+tblLastSample = grpstats(tblSample, 'PatientID', {'min' 'max'}, 'DataVars', 'DayRelativeToNearestHCT');
 tblLastSample.GroupCount = [];
 tblLastSample.Properties.VariableNames{end-1} = 'firstSample';
 tblLastSample.Properties.VariableNames{end} = 'lastSample';
 
-tblDomination = tblSample(tblSample.dominated == 1, {'PatientID' 'Day'});
+tblDomination = tblSample(tblSample.dominated == 1, {'PatientID' 'DayRelativeToNearestHCT'});
 tblDomination.Properties.VariableNames{end} = 'donimationDay';
 tblDomination = sortrows(tblDomination, 'donimationDay');
 [~, idx] = unique(tblDomination.PatientID);
@@ -139,4 +139,3 @@ fprintf('p-value = %0.2e\n', stats.p)
 fprintf('%d patients dominated of %d patients\n',...
     length(unique(tblSample.PatientID(tblSample.dominated))),...
     length(unique(tblSample.PatientID)));
-
