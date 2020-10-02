@@ -2,10 +2,12 @@
 dataDir = '../deidentified_data_tables/';
 
 % load sample table
-tblSamples = readtable([dataDir 'samples/tblASVsamples.csv']);
+tblSamples = readtable([dataDir 'samples/tblASVsamples.csv'],...
+    'Format','%s%s%f%s%s%f');
 
 % load infection table
-tblInfections = readtable([dataDir 'meta_data/tblInfectionsCidPapers.csv']);
+tblInfections = readtable([dataDir 'meta_data/tblInfectionsCidPapers.csv'],...
+    'Format','%s%f%s%f');
 
 % load count table
 tblCounts = readtable([dataDir 'counts/tblASVcounts_human_filter.csv']);
