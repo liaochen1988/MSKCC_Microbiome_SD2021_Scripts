@@ -62,11 +62,12 @@ set(gca,'YTick',ytick_lb:10:ytick_ub);
 %% plot microbiome trajectory of the chosen patient on top of tSNE
 
 % choose a patient id to show timeline trajectory on top of tSNE plot
-patientID2plot = '1005';
+patientID2plot = '1511';
 
 % load sample table and find microbiome samples of the patient
-tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'));
-tblsamples.PatientID = categorical(tblsamples.PatientID);
+opts = detectImportOptions(strcat(data_path, 'samples/tblASVsamples.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
+tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'), opts);
 tblsamples = tblsamples(tblsamples.PatientID==patientID2plot, :);
 
 % define a time window during which period data will be plotted

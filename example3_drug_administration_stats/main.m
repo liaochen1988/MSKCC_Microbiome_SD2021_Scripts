@@ -10,6 +10,7 @@ data_path = '../deidentified_data_tables/meta_data/';
 
 %% load drug table
 opts = detectImportOptions(strcat(data_path, 'tbldrug.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
 tbldrug = readtable(strcat(data_path, 'tbldrug.csv'),opts);
 
 %% keep only anti-bacterial drug classes

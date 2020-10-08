@@ -5,7 +5,9 @@
 function [tblX, tblY, patientID_of_rows] = create_regression_matrices(data_path, use_pseudo_fraction, include_lastday_drug, drug_admin_route)
 
 %% load sample table
-tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'));
+opts = detectImportOptions(strcat(data_path, 'samples/tblASVsamples.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
+tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'),opts);
 tblsamples.PatientID = categorical(tblsamples.PatientID);
 
 %% load counts table
@@ -13,8 +15,8 @@ tblcounts = readtable(strcat(data_path, 'counts/tblASVcounts_human_filter.csv'))
 
 %% load drug table and select for administration route
 opts = detectImportOptions(strcat(data_path, 'meta_data/tbldrug.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
 tbldrug = readtable(strcat(data_path, 'meta_data/tbldrug.csv'), opts);
-tbldrug.PatientID = categorical(tbldrug.PatientID);
 tbldrug = tbldrug(ismember(tbldrug.Route,drug_admin_route), :);
 if (height(tbldrug)==0)
     error('tbldrug is empty. check drug_admin_route.');

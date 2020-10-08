@@ -22,8 +22,9 @@ BloodCellType2Plot = 'Neutrophils'; % neutrophils
 %% load HCT information
 % this exemplified code only works for patients that have documented bone
 % marrow transplant date (time point). Quit otherwise.
-tblhctmeta = readtable(strcat(data_path, 'meta_data/tblhctmeta.csv'));
-tblhctmeta.PatientID = categorical(tblhctmeta.PatientID);
+opts = detectImportOptions(strcat(data_path, 'meta_data/tblhctmeta.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
+tblhctmeta = readtable(strcat(data_path, 'meta_data/tblhctmeta.csv'),opts);
 tblhctmeta = tblhctmeta(tblhctmeta.PatientID==PatientID2Plot, :);
 if (height(tblhctmeta)==0)
     warning("No HCT information for patient %s. Quit.", PatientID2Plot);
@@ -36,8 +37,9 @@ end
 
 %% load samples table
 % at least one stool sample exists for any patient with HCT meta data
-tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'));
-tblsamples.PatientID = categorical(tblsamples.PatientID);
+opts = detectImportOptions(strcat(data_path, 'samples/tblASVsamples.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
+tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'),opts);
 tblsamples = tblsamples((tblsamples.PatientID==PatientID2Plot) & (tblsamples.DayRelativeToNearestHCT >= RelativeTimePeriod2Plot(1)) & (tblsamples.DayRelativeToNearestHCT <= RelativeTimePeriod2Plot(2)), :);
 tblsamples = sortrows(tblsamples, 'Timepoint'); % sort rows by time point of samples
 
@@ -73,9 +75,8 @@ tbltaxonomy = tbltaxonomy(ismember(tbltaxonomy.ASV,tblcounts.Properties.Variable
 
 %% load blood cell counts table
 opts = detectImportOptions(strcat(data_path, 'meta_data/tblbc.csv'));
+opts = setvartype(opts,{'PatientID','BloodCellType'},'categorical');
 tblbc = readtable(strcat(data_path, 'meta_data/tblbc.csv'), opts);
-tblbc.PatientID = categorical(tblbc.PatientID);
-tblbc.BloodCellType = categorical(tblbc.BloodCellType);
 tblbc = tblbc((tblbc.PatientID == PatientID2Plot) & (tblbc.BloodCellType==BloodCellType2Plot) & (tblbc.Timepoint >= AbsoluteTimePeriod(1)) & (tblbc.Timepoint <= AbsoluteTimePeriod(2)), :);
 tblbc = sortrows(tblbc, 'Timepoint');
 if (isempty(tblbc))
@@ -86,8 +87,8 @@ end
 
 %% load drug administration table
 opts = detectImportOptions(strcat(data_path, 'meta_data/tbldrug.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
 tbldrug = readtable(strcat(data_path, 'meta_data/tbldrug.csv'), opts);
-tbldrug.PatientID = categorical(tbldrug.PatientID);
 tbldrug = tbldrug(strcmp(tbldrug.AntiInfective,'True'),:); % select for only anti-infectives
 tbldrug = tbldrug((tbldrug.PatientID == PatientID2Plot) & (tbldrug.StartTimepoint <= AbsoluteTimePeriod(2)) & (tbldrug.StopTimepoint >= AbsoluteTimePeriod(1)), :);
 if (isempty(tbldrug))
@@ -95,16 +96,18 @@ if (isempty(tbldrug))
 end
 
 %% load temperature table
-tbltemp = readtable(strcat(data_path, 'meta_data/tbltemperature.csv'));
-tbltemp.PatientID = categorical(tbltemp.PatientID);
+opts = detectImportOptions(strcat(data_path, 'meta_data/tbltemperature.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
+tbltemp = readtable(strcat(data_path, 'meta_data/tbltemperature.csv'), opts);
 tbltemp = tbltemp((tbltemp.PatientID == PatientID2Plot) & (tbltemp.Timepoint >= AbsoluteTimePeriod(1)) & (tbltemp.Timepoint <= AbsoluteTimePeriod(2)), :);
 if (isempty(tbltemp))
     warning("No temperature data for patient %s.", PatientID2Plot);
 end
 
 %% load bacterial infection table
-tblinfection = readtable(strcat(data_path, 'meta_data/tblInfectionsCidPapers.csv'));
-tblinfection.PatientID = categorical(tblinfection.PatientID);
+opts = detectImportOptions(strcat(data_path, 'meta_data/tblInfectionsCidPapers.csv'));
+opts = setvartype(opts,{'PatientID'},'categorical');
+tblinfection = readtable(strcat(data_path, 'meta_data/tblInfectionsCidPapers.csv'), opts);
 tblinfection = tblinfection((tblinfection.PatientID == PatientID2Plot) & (tblinfection.Timepoint >= AbsoluteTimePeriod(1)) & (tblinfection.Timepoint <= AbsoluteTimePeriod(2)), :);
 if (isempty(tblinfection))
     warning("No bacterial infection data for patient %s.", PatientID2Plot);
