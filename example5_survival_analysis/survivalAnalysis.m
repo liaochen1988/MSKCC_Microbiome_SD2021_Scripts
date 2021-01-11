@@ -126,6 +126,7 @@ for i = 1:height(tblPatientData)
     end
 end
 close(hInternal)
+head(tblSurvival)
 
 %% Cox proportional hazzards with time dependent covariate
 [b,logl,H,stats] = coxphfit(tblSurvival.dominated,...
