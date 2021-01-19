@@ -3,7 +3,7 @@ dataDir = '../deidentified_data_tables/';
 
 % load sample table
 tblSamples = readtable([dataDir 'samples/tblASVsamples.csv'],...
-    'Format','%s%s%f%s%s%f');
+    'Format','%s%s%f%s%s%s%f');
 
 % load infection table
 tblInfections = readtable([dataDir 'meta_data/tblInfectionsCidPapers.csv'],...
