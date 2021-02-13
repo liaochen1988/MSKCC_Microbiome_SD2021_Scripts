@@ -164,7 +164,7 @@ tbl_opt_coefs = array2table(opt_coefs','VariableNames',predictors,'RowNames',ASV
 %% visualize data using heatmap
 
 % rename ASV to format 'taxonomy (ASV)' (taxonomy is the lowest taxa that is not unclassified)
-tbltaxonomy = readtable(strcat(data_path, 'taxonomy/tblASVtaxonomy_silva_v4v5_filter.csv'));
+tbltaxonomy = readtable(strcat(data_path, 'taxonomy/tblASVtaxonomy_silva132_v4v5_filter.csv'));
 ASVs_w_taxa = cell(length(ASVs),1);
 for i=1:length(ASVs)
     taxonomy_i = tbltaxonomy(strcmp(tbltaxonomy.ASV, ASVs{i}), {'Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus'});

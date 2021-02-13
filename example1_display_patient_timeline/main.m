@@ -57,7 +57,7 @@ AbsoluteTimePeriod = [RelativeTimePeriod2Plot(1)-tblsamples{1,'DayRelativeToNear
                       RelativeTimePeriod2Plot(2)-tblsamples{1,'DayRelativeToNearestHCT'}+tblsamples{1,'Timepoint'}];
 
 %% load counts table
-tblcounts = readtable(strcat(data_path, 'counts/tblASVcounts_human_filter.csv'));
+tblcounts = readtable(strcat(data_path, 'counts/tblcounts_asv_melt.csv'));
 tblcounts = tblcounts(contains(tblcounts.SampleID, tblsamples.SampleID), :);
 
 %% unstack counts table and normalize ASV counts to relative abundance
@@ -70,7 +70,7 @@ tblcounts = innerjoin(tblsamples(:, {'SampleID', 'Timepoint', 'DayRelativeToNear
 tblcounts = sortrows(tblcounts, 'Timepoint'); % sort rows by time point of samples
 
 %% load taxonomy table
-tbltaxonomy = readtable(strcat(data_path,'taxonomy/tblASVtaxonomy_silva_v4v5_filter.csv'));
+tbltaxonomy = readtable(strcat(data_path,'taxonomy/tblASVtaxonomy_silva132_v4v5_filter.csv'));
 tbltaxonomy = tbltaxonomy(ismember(tbltaxonomy.ASV,tblcounts.Properties.VariableNames(4:end)), :);
 
 %% load blood cell counts table

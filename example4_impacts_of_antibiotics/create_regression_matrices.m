@@ -11,7 +11,7 @@ tblsamples = readtable(strcat(data_path, 'samples/tblASVsamples.csv'),opts);
 tblsamples.PatientID = categorical(tblsamples.PatientID);
 
 %% load counts table
-tblcounts = readtable(strcat(data_path, 'counts/tblASVcounts_human_filter.csv'));
+tblcounts = readtable(strcat(data_path, 'counts/tblcounts_asv_melt.csv'));
 
 %% load drug table and select for administration route
 opts = detectImportOptions(strcat(data_path, 'meta_data/tbldrug.csv'));

@@ -10,10 +10,10 @@ tblInfections = readtable([dataDir 'meta_data/tblInfectionsCidPapers.csv'],...
     'Format','%s%f%s%f');
 
 % load count table
-tblCounts = readtable([dataDir 'counts/tblASVcounts_human_filter.csv']);
+tblCounts = readtable([dataDir 'counts/tblcounts_asv_melt.csv']);
 
 % load taxonomy table
-tblAsvs = readtable([dataDir 'taxonomy/tblASVtaxonomy_silva_v4v5_filter.csv']);
+tblAsvs = readtable([dataDir 'taxonomy/tblASVtaxonomy_silva132_v4v5_filter.csv']);
 
 %% plot the incidences of bacterial infections relative to day of transplant
 MINDAY = -15;

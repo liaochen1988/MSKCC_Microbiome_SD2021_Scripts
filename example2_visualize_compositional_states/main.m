@@ -9,7 +9,7 @@ addpath('../utils');
 data_path = '../deidentified_data_tables/';
 
 %% load and unstack the counts table
-tblcounts = readtable(strcat(data_path, 'counts/tblASVcounts_human_filter.csv'));
+tblcounts = readtable(strcat(data_path, 'counts/tblcounts_asv_melt.csv'));
 tblcounts = unstack(tblcounts, 'Count', 'ASV');
 
 %% normalize ASV counts to relative abundance
@@ -19,7 +19,7 @@ matcounts = matcounts ./ sum(matcounts, 2); % convert to relative abundance
 tblcounts{:, 2:end} = matcounts;
 
 %% load the taxonomy table
-tbltaxonomy = readtable(strcat(data_path, 'taxonomy/tblASVtaxonomy_silva_v4v5_filter.csv'));
+tbltaxonomy = readtable(strcat(data_path, 'taxonomy/tblASVtaxonomy_silva132_v4v5_filter.csv'));
 
 %% get the dominant taxa of each sample and its rgb color
 % each sample in the tSNE plot will be colored by its dominant taxa
