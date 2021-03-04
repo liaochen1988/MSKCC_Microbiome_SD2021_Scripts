@@ -1,4 +1,4 @@
-This repository contains customized Matlab codes to reproduce the six figures in the paper, Liao et al., Compilation of longitudinal microbiota data and hospitalome from hematopoietic cell transplantation patients, Scientific Data (2021). The folders are structured as the following:
+This repository contains customized Matlab codes to reproduce the six figures in the paper (https://www.nature.com/articles/s41597-021-00860-8), Liao et al., Compilation of longitudinal microbiota data and hospitalome from hematopoietic cell transplantation patients, Scientific Data (2021). The folders are structured as the following:
 
 Figure 1, displaying a patient timeline: example1_display_patient_timeline/main.m
 
