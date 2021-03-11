@@ -10,4 +10,12 @@ Figure 4, inferring the impact of antibiotics on the microbiota using regularize
 
 Figure 5,6, intestinal domination increases a patient’s risk of bloodstream infection: example5_survival_analysis/main.m
 
-To run our codes, you do not need to download any data other than the github folder. A copy of the "hospitalome" data, which is also available in Figshare (https://figshare.com/collections/Compilation_of_longitudinal_microbiota_data_and_hospitalome_from_hematopoietic_cell_transplantation_patients/5271128), was pre-downloaded in the folder "deidentified_data_tables". The only difference of the local database compared to the online version is that the local version has two taxonomy tables that classify amplicon sequence variants (ASVs) using Silva 132 (tblASVtaxonomy_silva132_v4v5_filter.csv) and 138 (tblASVtaxonomy_silva138_v4v5_filter.csv). The online version only includes tblASVtaxonomy_silva132_v4v5_filter.csv, which is the default file used to reproduce all figures in our Scientific Data paper.
+To run our codes, you need to create a new folder "deidentified_data_tables" and download the "hospitalome" data from Figshare (https://figshare.com/collections/Compilation_of_longitudinal_microbiota_data_and_hospitalome_from_hematopoietic_cell_transplantation_patients/5271128) into the folder. The "deidentified_data_tables" folder should be structured as follows:
+
+Subfolder counts: tblcounts_asv_melt.csv, tblcounts_asv_wide.csv, tblcounts_class_wide.csv, tblccounts_family_wide.csv, tblcounts_genus_wide.csv, tblcounts_order_wide.csv, tblcounts_phylum_wide.csv, tblqpcr.csv
+
+Subfolder meta_data: tblbc.csv, tbldrug.csv, tblhctmeta.csv, tblInfectionsCidPapers.csv, tbltemperature.csv, tblVanA.csv
+
+Subfolder samples: tblASVsamples.csv
+
+Subfolder taxonomy: tblASVtaxonomy_silva132_v4v5_filter.csv
