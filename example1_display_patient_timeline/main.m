@@ -73,23 +73,23 @@ tblcounts = sortrows(tblcounts, 'Timepoint'); % sort rows by time point of sampl
 tbltaxonomy = readtable(strcat(data_path,'taxonomy/tblASVtaxonomy_silva132_v4v5_filter.csv'));
 tbltaxonomy = tbltaxonomy(ismember(tbltaxonomy.ASV,tblcounts.Properties.VariableNames(4:end)), :);
 
-%% load blood cell counts table
-opts = detectImportOptions(strcat(data_path, 'meta_data/tblbc.csv'));
+%% load white blood cell counts table
+opts = detectImportOptions(strcat(data_path, 'meta_data/tblwbc.csv'));
 opts = setvartype(opts,{'PatientID','BloodCellType'},'categorical');
-tblbc = readtable(strcat(data_path, 'meta_data/tblbc.csv'), opts);
-tblbc = tblbc((tblbc.PatientID == PatientID2Plot) & (tblbc.BloodCellType==BloodCellType2Plot) & (tblbc.Timepoint >= AbsoluteTimePeriod(1)) & (tblbc.Timepoint <= AbsoluteTimePeriod(2)), :);
-tblbc = sortrows(tblbc, 'Timepoint');
-if (isempty(tblbc))
+tblwbc = readtable(strcat(data_path, 'meta_data/tblwbc.csv'), opts);
+tblwbc.Value = str2double(tblwbc{:,'Value'});
+tblwbc = tblwbc((tblwbc.PatientID == PatientID2Plot) & (tblwbc.BloodCellType==BloodCellType2Plot) & (tblwbc.Timepoint >= AbsoluteTimePeriod(1)) & (tblwbc.Timepoint <= AbsoluteTimePeriod(2)), :);
+tblwbc = sortrows(tblwbc, 'Timepoint');
+if (isempty(tblwbc))
     warning("No %s data for patient %s.", BloodCellType2Plot, PatientID2Plot);
 else
-    tblbc = tblbc(:,{'DayRelativeToNearestHCT','Value'});
+    tblwbc = tblwbc(:,{'DayRelativeToNearestHCT','Value'});
 end
 
 %% load drug administration table
 opts = detectImportOptions(strcat(data_path, 'meta_data/tbldrug.csv'));
 opts = setvartype(opts,{'PatientID'},'categorical');
 tbldrug = readtable(strcat(data_path, 'meta_data/tbldrug.csv'), opts);
-tbldrug = tbldrug(strcmp(tbldrug.AntiInfective,'True'),:); % select for only anti-infectives
 tbldrug = tbldrug((tbldrug.PatientID == PatientID2Plot) & (tbldrug.StartTimepoint <= AbsoluteTimePeriod(2)) & (tbldrug.StopTimepoint >= AbsoluteTimePeriod(1)), :);
 if (isempty(tbldrug))
     warning("No anti-infective drug records for patient %s.", PatientID2Plot);
@@ -114,4 +114,4 @@ if (isempty(tblinfection))
 end
 
 %% plot time series of microbiome composition, blood cell count, anti-infective drug administration, temperature, and indicate infections if possible
-plot_community(PatientID2Plot, RelativeTimePeriod2Plot, BloodCellType2Plot, tblcounts, tbltaxonomy, tblbc, tbldrug, tbltemp, tblinfection);
+plot_community(PatientID2Plot, RelativeTimePeriod2Plot, BloodCellType2Plot, tblcounts, tbltaxonomy, tblwbc, tbldrug, tbltemp, tblinfection);

@@ -1,4 +1,4 @@
-function plot_community(PatientID2Plot, RelativeTimePeriod2Plot, BloodCellType2Plot, tblcounts, tbltaxonomy, tblbc, tbldrug, tbltemp, tblinfection)
+function plot_community(PatientID2Plot, RelativeTimePeriod2Plot, BloodCellType2Plot, tblcounts, tbltaxonomy, tblwbc, tbldrug, tbltemp, tblinfection)
 
 figure();
 title(['patientID: ', PatientID2Plot]);
@@ -92,30 +92,30 @@ subplot(5,1,3);
 hold on;
 box on;
 
-if (~isempty(tblbc))
+if (~isempty(tblwbc))
     
-	% impute missing values in tblbc
+	% impute missing values in tblwbc
     rows2insert = {};
     for i=RelativeTimePeriod2Plot(1):1:RelativeTimePeriod2Plot(2)
-        if (sum(tblbc.DayRelativeToNearestHCT==i)==0)
+        if (sum(tblwbc.DayRelativeToNearestHCT==i)==0)
             rows2insert = [rows2insert;{i,nan}];
         end
     end
-    tblbc = [tblbc;rows2insert];
-    tblbc = sortrows(tblbc, 'DayRelativeToNearestHCT');
-    tblbc = fillmissing(tblbc,'linear');
-    tblbc{tblbc.Value<0, 'Value'} = 0;
+    tblwbc = [tblwbc;rows2insert];
+    tblwbc = sortrows(tblwbc, 'DayRelativeToNearestHCT');
+    tblwbc = fillmissing(tblwbc,'linear');
+    tblwbc{tblwbc.Value<0, 'Value'} = 0;
         
     yyaxis left;
-    plot(tblbc.DayRelativeToNearestHCT, tblbc.Value, 'k.-', 'MarkerFaceColor', 'w', 'MarkerSize', 20, 'LineWidth', 1);
+    plot(tblwbc.DayRelativeToNearestHCT, tblwbc.Value, 'k.-', 'MarkerFaceColor', 'w', 'MarkerSize', 20, 'LineWidth', 1);
     if(strcmp(BloodCellType2Plot, 'Neutrophils'))
-        idx_neutropenia = find(tblbc.Value <= 0.5); % threshold for neutropenia
-        plot(tblbc.DayRelativeToNearestHCT(idx_neutropenia), tblbc.Value(idx_neutropenia), 'r.', 'MarkerSize', 20);
+        idx_neutropenia = find(tblwbc.Value <= 0.5); % threshold for neutropenia
+        plot(tblwbc.DayRelativeToNearestHCT(idx_neutropenia), tblwbc.Value(idx_neutropenia), 'r.', 'MarkerSize', 20);
     end
     set(gca,'Xtick',xtick_lb:5:xtick_ub);
     
-    ytick_lb = floor(min(tblbc.Value));
-    ytick_ub = ceil(max(tblbc.Value));
+    ytick_lb = floor(min(tblwbc.Value));
+    ytick_ub = ceil(max(tblwbc.Value));
     if (mod(ytick_lb,2)~=0)
         ytick_lb = ytick_lb-3;
     else

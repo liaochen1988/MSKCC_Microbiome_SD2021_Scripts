@@ -28,7 +28,7 @@ include_lastday_drug = 1;
 
 % include one or more of the following:
 % 'oral', 'gastric or jejunum tube', 'injection', 'intravenous', 'topical', 'unknown', 'urethral/vaginal/irrigation'
-drug_admin_route = {'oral'};
+drug_admin_route = {'intravenous'};
 
 max_interval = 3; % maximum sample intervals considered in regression
 
